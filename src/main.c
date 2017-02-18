@@ -22,7 +22,7 @@ static void clock_setup(void)
 static void pcd8544_setup(void) {
   /* Configure GPIOs: SS=PA4, SCK=PA5, MISO=PA6 and MOSI=PA7 */
   gpio_set_mode(PCD8544_SPI_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
-                PCD8544_SPI_MOSI | PCD8544_SPI_SCK | PCD8544_SCE );
+                PCD8544_SPI_MOSI | PCD8544_SPI_SCK | PCD8544_SPI_SS );
   /* Reset SPI, SPI_CR1 register cleared, SPI is disabled */
   spi_reset(PCD8544_SPI);
   /* Set up SPI in Master mode with:
@@ -32,7 +32,8 @@ static void pcd8544_setup(void) {
    * Frame format: MSB First
    */
   spi_init_master(PCD8544_SPI, SPI_CR1_BAUDRATE_FPCLK_DIV_16, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                  SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
+                 SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
+
   /*
    * Set NSS management to software.
    *

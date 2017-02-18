@@ -13,13 +13,14 @@
 
 #define PCD8544_DC GPIO1
 #define PCD8544_DC_PORT GPIOA
-#define PCD8544_SCE GPIO1
+#define PCD8544_SCE GPIO12
 #define PCD8544_SCE_PORT GPIOB
 
 #define PCD8544_SPI SPI2
 #define PCD8544_SPI_PORT GPIOB
 #define PCD8544_SPI_MOSI GPIO15
 #define PCD8544_SPI_SCK  GPIO13
+#define PCD8544_SPI_SS  GPIO12
 
 //--- cut here --- cut here --- cut here --- :=)
 
@@ -47,6 +48,7 @@
 #define SCE_LOW gpio_clear(PCD8544_SCE_PORT, PCD8544_SCE);
 #define SCE_HIGH gpio_set(PCD8544_SCE_PORT, PCD8544_SCE);
 #define DC_HIGH  gpio_set(PCD8544_DC_PORT, PCD8544_DC);
+#define DC_LOW  gpio_clear(PCD8544_DC_PORT, PCD8544_DC);
 
 #ifndef PCD8544_BIAS
 #define PCD8544_BIAS 4

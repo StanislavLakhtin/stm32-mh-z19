@@ -52,10 +52,12 @@ void waitFinished(void) {
 }
 
 void reset() {
+  SCE_LOW
   waitFinished();
   gpio_clear(PCD8544_RST_PORT, PCD8544_RST);
   delay(80);
   gpio_set(PCD8544_RST_PORT, PCD8544_RST);
+  SCE_HIGH
 }
 
 void send(uint8_t data) {
@@ -63,20 +65,20 @@ void send(uint8_t data) {
 }
 
 void command(uint8_t cmd) {
-  gpio_clear(PCD8544_DC_PORT, PCD8544_DC);
+  DC_LOW
+  SCE_LOW
   send(cmd);
+  SCE_HIGH
 }
 
 void pcd8544_init(void) {
-  gpio_clear(PCD8544_SCE_PORT, PCD8544_SCE);
   reset();
   command(PCD8544_EXTENDED_MODE); // function set PD = 0 and V = 0, select extended instruction set (H = 1 mode)
   command(PCD8544_SETBIAS | PCD8544_BIAS); // Set Temp coefficent.  default is 0x04
-  pcd8544_setContrast(0x7f); //experimental determined
+  pcd8544_setContrast(0x3e); //experimental determined
   command(PCD8544_COMMAND_MODE);// function set PD = 0 and V = 0, select normal instruction set (H = 0 mode)
   command(PCD8544_DISPLAY_MODE);// display control set normal mode (D = 1 and E = 0)
   pcd8544_display();
-  gpio_set(PCD8544_SCE_PORT, PCD8544_SCE);
 }
 
 void pcd8544_setContrast(uint8_t contrast) {
@@ -84,17 +86,20 @@ void pcd8544_setContrast(uint8_t contrast) {
 }
 
 void pcd8544_display(void) {
-  SCE_LOW
-  uint8_t c, maxC, p;
+  uint8_t c, maxC = LCDWIDTH-1, p;
   for (p = 0; p < 6; p++){
-    command(PCD8544_SET_PAGE|p);
+    command(PCD8544_SET_PAGE | p);
     c=0;
-    maxC = LCDWIDTH-1;
-    command(PCD8544_SET_ADDRESS|c);
+    command(PCD8544_SET_ADDRESS | c);
     DC_HIGH
+    SCE_LOW
     for (;c<maxC;c++){
-      send(pcd8544_buffer[(LCDWIDTH*p)+c]);
+      send(pcd8544_buffer[(LCDWIDTH*p)+c]); //todo make it through the DMA
     }
+    /* Wait for transfer finished. */
+    //while (!(SPI_SR(PCD8544_SPI) & SPI_SR_RXNE));
+    //SPI_DR(PCD8544_SPI);
+    SCE_HIGH
   }
-  SCE_HIGH
 }
+

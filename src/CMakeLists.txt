@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 #Переделать здесь, чтобы не ссылаться на относительные пути для поиска -- некрасиво
 file(GLOB USER_SOURCES ./*.c ./*.cpp
-#        ${pcd8544_ROOT}/*.c
+        ${PCD8544_ROOT}/*.c
         ${MHZ19_ROOT}/*.c)
 
 add_executable(${PROJECT_NAME}.elf ${USER_SOURCES})

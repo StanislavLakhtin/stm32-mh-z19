@@ -247,7 +247,6 @@ void pcd8544_drawText(uint8_t x, uint8_t y, uint8_t color, wchar_t *text) { //x 
       if (x > LCDWIDTH)
         break;
       uint8_t calcSymLine = pcd8544_buffer[x + (y / 8) * LCDWIDTH];
-      //pcd8544_GoTo(x, y);
       if (color)
         calcSymLine |= charCur->l[i] << cBites;
       else
@@ -255,7 +254,6 @@ void pcd8544_drawText(uint8_t x, uint8_t y, uint8_t color, wchar_t *text) { //x 
       pcd8544_buffer[x + (y / 8) * LCDWIDTH] =  calcSymLine;
       if (y < 40 && cBites>0) {
         calcSymLine = pcd8544_buffer[x + ((y +8)/ 8) * LCDWIDTH];
-        //pcd8544_GoTo(x, y + 8);
         if (color)
           calcSymLine |= charCur->l[i] >> (8 - cBites);
         else

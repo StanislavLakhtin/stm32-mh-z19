@@ -7,6 +7,7 @@
 
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
+#include <wchar.h>
 
 #define PCD8544_RST GPIO0
 #define PCD8544_RST_PORT GPIOB
@@ -21,6 +22,10 @@
 #define PCD8544_SPI_MOSI GPIO15
 #define PCD8544_SPI_SCK  GPIO13
 #define PCD8544_SPI_SS  GPIO12
+
+#ifndef _BV
+#define _BV(bit) (1<<(bit))
+#endif
 
 //--- cut here --- cut here --- cut here --- :=)
 
@@ -56,6 +61,15 @@
 
 void pcd8544_init(void);
 void pcd8544_display(void);
-void pcd8544_setContrast(uint8_t contrast); //best(and maximum) value is 0x7f
+void pcd8544_setContrast(uint8_t contrast); // maximum value is 0x7f
+void pcd8544_drawPixel(int16_t x, int16_t y, uint16_t color);
+uint8_t pcd8544_getPixel(int8_t x, int8_t y);
+uint8_t pcd8544_drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
+void pcd8544_drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+void pcd8544_drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+void pcd8544_drawVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+void pcd8544_drawHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+void pcd8544_clearDisplay();
+void pcd8544_drawText(uint8_t x, uint8_t y, uint8_t color, wchar_t *text);
 
 #endif //STM32_MH_Z19_PCD8544_H

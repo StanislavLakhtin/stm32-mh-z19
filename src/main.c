@@ -71,8 +71,11 @@ int main(void) {
   pcd8544_init();
 
   while (1) {
+    pcd8544_clearDisplay();
+    pcd8544_drawText(0,3,BLACK,L"Привет, мир!");
+    pcd8544_drawText(0,11,BLACK,L"Удивительно нам это.");
     pcd8544_display();
-    for (int i=0; i<20000; i++)
+    for (int i=0; i<200000; i++)
       __asm__("nop");
   }
 }

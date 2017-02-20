@@ -17,7 +17,7 @@ static uint8_t CALIBRATE_ZERO[] = {0xff, 0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x0
 void mhz19_init(void);
 void mhz19_readConcentrationCmd(void);
 void mhz19_isrHandler(uint8_t data);
-uint16_t mhz19_lastConcentration();
+uint16_t mhz19_lastConcentration(uint16_t calibrated);
 uint8_t * mhz19_lastResp();
 uint8_t mhz19_checkLastCrc();
 void mhz19_calibrateZero();

@@ -47,8 +47,8 @@ void mhz19_isrHandler(uint8_t data) {
   mhz19_cmdIndex++;
 }
 
-uint16_t mhz19_lastConcentration() {
-  return mhz19_lastResponse[2] * 256 + mhz19_lastResponse[3];
+uint16_t mhz19_lastConcentration(uint16_t calibrated) {
+  return mhz19_lastResponse[2] * 256 + mhz19_lastResponse[3]-calibrated; //todo add manually calibrated step
 }
 
 uint8_t *mhz19_lastResp() {

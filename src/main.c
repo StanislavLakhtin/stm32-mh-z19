@@ -101,7 +101,7 @@ int main(void) {
     if (scanPeriod > 500) {
       scanPeriod = 0;
       mhz19_readConcentrationCmd();
-      swprintf(buffer, 50, L"  %d", mhz19_lastConcentration());
+      swprintf(buffer, 50, L"  %d", mhz19_lastConcentration(380));
       pcd8544_clearDisplay();
       pcd8544_drawText(0, 0, BLACK, L"Концентрация CO2:");
       pcd8544_drawText(0, 8, BLACK, buffer);

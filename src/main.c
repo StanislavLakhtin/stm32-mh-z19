@@ -9,6 +9,8 @@
 #include <libopencm3/stm32/f1/nvic.h>
 #include <pcd8544.h>
 #include <mhz19.h>
+#include <stdio.h>
+#include <errno.h>
 
 static void clock_setup(void) {
   rcc_clock_setup_in_hse_8mhz_out_72mhz();
@@ -19,11 +21,12 @@ static void clock_setup(void) {
   /* Enable SPI2 Periph and gpio clocks */
   rcc_periph_clock_enable(RCC_SPI2);
 
+  rcc_periph_clock_enable(RCC_USART2);
   rcc_periph_clock_enable(RCC_USART3);
 }
 
 static void pcd8544_setup(void) {
-  /* Configure GPIOs: SS=PA4, SCK=PA5, MISO=PA6 and MOSI=PA7 */
+  /* Configure GPIOs: SS=PCD8544_SPI_SS, SCK=PCD8544_SPI_SCK, MISO=UNUSED and MOSI=PCD8544_SPI_MOSI */
   gpio_set_mode(PCD8544_SPI_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
                 PCD8544_SPI_MOSI | PCD8544_SPI_SCK | PCD8544_SPI_SS);
   /* Reset SPI, SPI_CR1 register cleared, SPI is disabled */
@@ -34,7 +37,7 @@ static void pcd8544_setup(void) {
    * Data frame format: 8-bit
    * Frame format: MSB First
    */
-  spi_init_master(PCD8544_SPI, SPI_CR1_BAUDRATE_FPCLK_DIV_16, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+  spi_init_master(PCD8544_SPI, SPI_CR1_BAUDRATE_FPCLK_DIV_8, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
                   SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
 
   /*
@@ -67,6 +70,18 @@ static void pcd8544_setup(void) {
 
 }
 
+int _write(int file, char *ptr, int len) {
+  int i;
+
+  if (file == 1) {
+    for (i = 0; i < len; i++)
+      usart_send_blocking(USART2, ptr[i]);
+    return i;
+  }
+  errno = EIO;
+  return -1;
+}
+
 static void mhz19_setup(void) {
   nvic_enable_irq(NVIC_USART3_IRQ);
 
@@ -74,6 +89,21 @@ static void mhz19_setup(void) {
                 GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART3_TX);
   gpio_set_mode(GPIOB, GPIO_MODE_INPUT,
                 GPIO_CNF_INPUT_PULL_UPDOWN, GPIO_USART3_RX);
+}
+
+static void usart_setup(void) {
+  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+                GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART2_TX);
+  gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+                GPIO_CNF_INPUT_PULL_UPDOWN, GPIO_USART2_RX);
+
+  usart_set_baudrate(USART2, 9600);
+  usart_set_databits(USART2, 8);
+  usart_set_stopbits(USART2, USART_STOPBITS_1);
+  usart_set_mode(USART2, USART_MODE_TX_RX);
+  usart_set_parity(USART2, USART_PARITY_NONE);
+  usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
+  usart_enable(USART2);
 }
 
 void usart3_isr(void) {
@@ -87,32 +117,41 @@ void usart3_isr(void) {
 }
 
 int main(void) {
-
   clock_setup();
   pcd8544_setup();
+  usart_setup();
   mhz19_setup();
 
   mhz19_init();
   pcd8544_init();
   uint16_t scanPeriod = 0;
   wchar_t buffer[50];
+  printf("\nRAW SS, HH, LL, TT, Uh, Ul");
 
   while (1) {
-    if (scanPeriod > 500) {
+    if (scanPeriod > 600) {
       scanPeriod = 0;
       mhz19_readConcentrationCmd();
-      swprintf(buffer, 50, L"  %d", mhz19_lastConcentration(380));
+      MHZ19_RESPONSE *lResp = mhz19_lastResp();
       pcd8544_clearDisplay();
-      pcd8544_drawText(0, 0, BLACK, L"Концентрация CO2:");
-      pcd8544_drawText(0, 8, BLACK, buffer);
-      uint8_t *lResp = mhz19_lastResp();
-      swprintf(buffer, 50, L"%02x %02x %02x %02x %02x %02x %02x %02x %02x",
-               lResp[0],lResp[1],lResp[2],lResp[3],lResp[4],
-               lResp[5],lResp[6],lResp[7],lResp[8]);
-      pcd8544_drawText(0, 16, BLACK, buffer);
-      swprintf(buffer, 50, L"CRC: %02x:%02x", lResp[8],mhz19_checkLastCrc());
-      pcd8544_drawText(0, 24, BLACK, buffer);
-      pcd8544_display();
+      if (lResp->SS != NOTVALIDREADING) {
+        swprintf(buffer, 50, L"Статус: 0x%02x", lResp->SS );
+        pcd8544_drawText(0, 0, BLACK, buffer);
+        swprintf(buffer, 50, L" %d ppm", mhz19_lastConcentration(0));
+        pcd8544_drawText(0, 8, BLACK, buffer);
+
+        swprintf(buffer, 50, L"Температура: %d C", mhz19_lastTempCelsius());
+        pcd8544_drawText(0, 16, BLACK, buffer);
+        swprintf(buffer, 50, L"CRC: [%d] %s", lResp->CS, (lResp->CS == mhz19_calcLastCrc()) ? "OK" : "CORRUPT");
+        pcd8544_drawText(0, 24, BLACK, buffer);
+      } else {
+        swprintf(buffer, 50, L"Недостоверные\nданные\nСтатус: %d", lResp->SS);
+        pcd8544_drawText(0, 0, BLACK, buffer);
+        swprintf(buffer, 50, L" %d ppm", mhz19_lastConcentration(0));
+        pcd8544_drawText(0, 24, BLACK, buffer);
+      }
+      printf("\nRAW: 0x%02X, %d, %d, %d, %d, %d // CO2 = %d",lResp->SS, lResp->HH, lResp->LL, lResp->TT, lResp->Uh, lResp->Ul, mhz19_lastConcentration(0) );
+     pcd8544_display();
     } else {
       scanPeriod++;
     }

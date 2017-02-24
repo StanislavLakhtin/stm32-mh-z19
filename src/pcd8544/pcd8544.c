@@ -82,7 +82,7 @@ void pcd8544_init(void) {
   reset();
   command(PCD8544_EXTENDED_MODE); // function set PD = 0 and V = 0, select extended instruction set (H = 1 mode)
   command(PCD8544_SETBIAS | PCD8544_BIAS); // Set Temp coefficent.  default is 0x04
-  pcd8544_setContrast(0x3e); //experimental determined
+  pcd8544_setContrast(0x38); //experimental determined
   command(PCD8544_COMMAND_MODE);// function set PD = 0 and V = 0, select normal instruction set (H = 0 mode)
   command(PCD8544_DISPLAY_MODE);// display control set normal mode (D = 1 and E = 0)
   pcd8544_display();
@@ -201,22 +201,22 @@ void pcd8544_drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t c
 
 void pcd8544_drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
   pcd8544_drawHLine(x, y, w, color);
-  pcd8544_drawHLine(x, y+h-1, w, color);
+  pcd8544_drawHLine(x, y + h - 1, w, color);
   pcd8544_drawVLine(x, y, h, color);
-  pcd8544_drawVLine(x+w-1, y, h, color);
+  pcd8544_drawVLine(x + w - 1, y, h, color);
 }
 
 void pcd8544_drawVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {
-  pcd8544_drawLine(x, y, x, y+h-1, color);
+  pcd8544_drawLine(x, y, x, y + h - 1, color);
 }
 
 void pcd8544_drawHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {
-  pcd8544_drawLine(x, y, x+w-1, y, color);
+  pcd8544_drawLine(x, y, x + w - 1, y, color);
 }
 
 void pcd8544_clearDisplay() {
-  uint16_t length = LCDWIDTH*LCDHEIGHT/8 - 1;
-  for (int i=0; i<length;i++)
+  uint16_t length = LCDWIDTH * LCDHEIGHT / 8 - 1;
+  for (int i = 0; i < length; i++)
     pcd8544_buffer[i] = 0x00;
 }
 
@@ -234,34 +234,41 @@ uint8_t pcd8544_GoTo(uint8_t x, uint8_t y) {//послать команду на
   command(PCD8544_SET_ADDRESS | x);
 }
 
-void pcd8544_drawText(uint8_t x, uint8_t y, uint8_t color, wchar_t *text) { //x и y -- верхний правый угол выводимого текста
+void
+pcd8544_drawText(uint8_t x, uint8_t y, uint8_t color, wchar_t *text) { //x и y -- верхний правый угол выводимого текста
   int charPos = 0;
   uint16_t symbol = 0x00;
   do {
     symbol = text[charPos];
-    Ks0108Char_t *charCur = getCharacter(symbol);
-    uint8_t cBites = (uint8_t) (y % 8);
+    if (symbol == L'\n') {
+      y += 8;
+      x = 0;
+    } else {
+      Ks0108Char_t *charCur = getCharacter(symbol);
+      uint8_t cBites = (uint8_t) (y % 8);
 
-    int i = 0;
-    for (; i < charCur->size; i++) {
-      if (x > LCDWIDTH)
-        break;
-      uint8_t calcSymLine = pcd8544_buffer[x + (y / 8) * LCDWIDTH];
-      if (color)
-        calcSymLine |= charCur->l[i] << cBites;
-      else
-        calcSymLine &= ~(charCur->l[i] << cBites);
-      pcd8544_buffer[x + (y / 8) * LCDWIDTH] =  calcSymLine;
-      if (y < 40 && cBites>0) {
-        calcSymLine = pcd8544_buffer[x + ((y +8)/ 8) * LCDWIDTH];
+      int i = 0;
+      for (; i < charCur->size; i++) {
+        if (x > LCDWIDTH)
+          break;
+        uint8_t calcSymLine = pcd8544_buffer[x + (y / 8) * LCDWIDTH];
         if (color)
-          calcSymLine |= charCur->l[i] >> (8 - cBites);
+          calcSymLine |= charCur->l[i] << cBites;
         else
-          calcSymLine &= ~(charCur->l[i] >> (8 - cBites));
-        pcd8544_buffer[x + ((y +8)/ 8) * LCDWIDTH] = calcSymLine;
+          calcSymLine &= ~(charCur->l[i] << cBites);
+        pcd8544_buffer[x + (y / 8) * LCDWIDTH] = calcSymLine;
+        if (y < 40 && cBites > 0) {
+          calcSymLine = pcd8544_buffer[x + ((y + 8) / 8) * LCDWIDTH];
+          if (color)
+            calcSymLine |= charCur->l[i] >> (8 - cBites);
+          else
+            calcSymLine &= ~(charCur->l[i] >> (8 - cBites));
+          pcd8544_buffer[x + ((y + 8) / 8) * LCDWIDTH] = calcSymLine;
+        }
+        x += 1;
       }
-      x += 1;
     }
+
 
     charPos += 1;
   } while (symbol != 0x00);
